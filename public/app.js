@@ -208,13 +208,22 @@ function renderCalendar(entries) {
 // ---------- seletor de card ----------
 let ddCallback = null, ddTimer = null, ddItems = [], ddSel = 0;
 function openIssuePicker(anchor, cb) {
-  ddCallback = cb; const dd = $('#issue-dropdown'); const r = anchor.getBoundingClientRect();
+  ddCallback = cb; const dd = $('#issue-dropdown');
+  const dlg = anchor.closest('dialog');
+  if (dlg) dlg.appendChild(dd);
+  else document.body.appendChild(dd);
+  const r = anchor.getBoundingClientRect();
   dd.classList.remove('hidden');
   dd.style.top = `${Math.min(r.bottom + 6, innerHeight - 420)}px`;
   dd.style.left = `${Math.max(10, Math.min(r.left, innerWidth - 460))}px`;
   const inp = $('#issue-search'); inp.value = ''; inp.focus(); searchIssues('');
 }
-function closeIssuePicker() { $('#issue-dropdown').classList.add('hidden'); ddCallback = null; }
+function closeIssuePicker() {
+  const dd = $('#issue-dropdown');
+  dd.classList.add('hidden');
+  document.body.appendChild(dd);
+  ddCallback = null;
+}
 async function searchIssues(q) {
   const box = $('#issue-results');
   if (!q && state.recentIssues.length) renderIssues(state.recentIssues, 'Recentes', true);
@@ -414,6 +423,7 @@ function bind() {
 
   $('#entry-form').onsubmit = saveEntry;
   $('#entry-cancel').onclick = () => $('#entry-modal').close();
+  $('#entry-modal').addEventListener('close', closeIssuePicker);
   $('#entry-delete').onclick = async () => { if (editing && await deleteEntry(editing)) $('#entry-modal').close(); };
   $('#entry-issue-btn').onclick = (e) => openIssuePicker(e.currentTarget, (i) => { entryIssue = i; setIssueBtn($('#entry-issue-btn'), i); });
   $('#entry-start').onchange = () => syncDur('range'); $('#entry-end').onchange = () => syncDur('range');
