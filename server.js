@@ -3,9 +3,44 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 
+const { exec } = require('child_process');
+const os = require('os');
+
+let sea = null;
+try { sea = require('node:sea'); if (!sea.isSea()) sea = null; } catch { sea = null; }
+
 const PORT = process.env.PORT || 5178;
-const CONFIG_FILE = path.join(__dirname, 'config.json');
+// No .exe a configuração fica em %APPDATA%\JiraTimeTracker; em dev, na pasta do projeto
+const CONFIG_DIR = sea ? path.join(process.env.APPDATA || os.homedir(), 'JiraTimeTracker') : __dirname;
+fs.mkdirSync(CONFIG_DIR, { recursive: true });
+const CONFIG_FILE = path.join(CONFIG_DIR, 'config.json');
 const PUBLIC_DIR = path.join(__dirname, 'public');
+
+function readStatic(name) {
+  if (sea) { try { return Buffer.from(sea.getAsset(name)); } catch { return null; } }
+  const file = path.normalize(path.join(PUBLIC_DIR, name));
+  if (!file.startsWith(PUBLIC_DIR) || !fs.existsSync(file)) return null;
+  return fs.readFileSync(file);
+}
+
+// Abre como janela de aplicativo (Edge/Chrome em modo --app); se não houver, usa o navegador padrão
+function openAppWindow() {
+  const url = `http://localhost:${PORT}`;
+  if (process.platform !== 'win32') return exec(`xdg-open ${url} || open ${url}`);
+  const pf = process.env['ProgramFiles(x86)'] || 'C:\\Program Files (x86)';
+  const pf64 = process.env.ProgramFiles || 'C:\\Program Files';
+  const local = process.env.LOCALAPPDATA || '';
+  const candidates = [
+    path.join(pf, 'Microsoft\\Edge\\Application\\msedge.exe'),
+    path.join(pf64, 'Microsoft\\Edge\\Application\\msedge.exe'),
+    path.join(pf64, 'Google\\Chrome\\Application\\chrome.exe'),
+    path.join(pf, 'Google\\Chrome\\Application\\chrome.exe'),
+    path.join(local, 'Google\\Chrome\\Application\\chrome.exe'),
+  ];
+  const browser = candidates.find((p) => fs.existsSync(p));
+  if (browser) exec(`"${browser}" --app=${url} --window-size=1280,860`);
+  else exec(`start "" ${url}`);
+}
 
 const MIME = {
   '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8',
@@ -183,15 +218,27 @@ async function api(req, res, url) {
   send(res, 404, { error: 'NOT_FOUND' });
 }
 
-http.createServer(async (req, res) => {
+const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host}`);
   if (url.pathname.startsWith('/api/')) {
     try { return await api(req, res, url); } catch (e) { return send(res, 500, { error: 'SERVER', message: e.message }); }
   }
-  let file = path.normalize(path.join(PUBLIC_DIR, url.pathname === '/' ? 'index.html' : url.pathname));
-  if (!file.startsWith(PUBLIC_DIR) || !fs.existsSync(file)) file = path.join(PUBLIC_DIR, 'index.html');
-  res.writeHead(200, { 'Content-Type': MIME[path.extname(file)] || 'application/octet-stream' });
-  fs.createReadStream(file).pipe(res);
-}).listen(PORT, '127.0.0.1', () => {
-  console.log(`\n  ⏱  Jira Time Tracker rodando em http://localhost:${PORT}\n`);
+  let name = url.pathname === '/' ? 'index.html' : url.pathname.replace(/^\/+/, '');
+  let buf = readStatic(name);
+  if (!buf) { name = 'index.html'; buf = readStatic(name); }
+  res.writeHead(200, { 'Content-Type': MIME[path.extname(name)] || 'application/octet-stream' });
+  res.end(buf);
+});
+
+server.on('error', (e) => {
+  // Já existe uma instância rodando: apenas abre a janela
+  if (e.code === 'EADDRINUSE') { openAppWindow(); setTimeout(() => process.exit(0), 1500); }
+  else { console.error(e); process.exit(1); }
+});
+
+server.listen(PORT, '127.0.0.1', () => {
+  console.log(`\n  ⏱  Jira Time Tracker rodando em http://localhost:${PORT}`);
+  console.log(`  Configuração: ${CONFIG_FILE}`);
+  console.log('  Mantenha esta janela aberta (pode minimizar). Feche para encerrar.\n');
+  if (sea || process.argv.includes('--open')) openAppWindow();
 });
