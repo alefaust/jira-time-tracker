@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Jira Time Tracker – Registro de horas</title>
+  <meta name="description" content="Registre horas nos cards do Jira com timer, lista semanal e calendário." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <div class="bg-glow"></div>
+  <header class="topbar">
+    <div class="brand"><span class="logo">⏱</span><h1>Jira <span>Tracker</span></h1></div>
+    <nav class="tabs" role="tablist">
+      <button id="tab-week" class="tab active" data-view="week">📋 Semana</button>
+      <button id="tab-calendar" class="tab" data-view="calendar">📅 Calendário</button>
+    </nav>
+    <div class="top-actions">
+      <span id="pending-badge" class="pending hidden" title="Entradas aguardando envio ao Jira"></span>
+      <span id="user-chip" class="user-chip"></span>
+      <button id="btn-settings" class="icon-btn" title="Configurações">⚙</button>
+    </div>
+  </header>
+
+  <!-- Barra do timer -->
+  <section class="timer-bar glass" aria-label="Timer">
+    <input id="timer-desc" class="timer-desc" placeholder="No que você está trabalhando?" />
+    <div class="issue-picker" id="timer-issue-picker">
+      <button id="timer-issue-btn" class="issue-btn">＋ Selecionar card</button>
+    </div>
+    <div id="timer-display" class="timer-display">00:00:00</div>
+    <button id="timer-toggle" class="play-btn" title="Iniciar/Parar">▶</button>
+    <button id="btn-manual" class="ghost-btn" title="Adicionar manualmente">✎ Manual</button>
+  </section>
+
+  <main>
+    <section id="view-week" class="view">
+      <div class="week-nav">
+        <button id="week-prev" class="icon-btn">◀</button>
+        <button id="week-today" class="ghost-btn">Esta semana</button>
+        <button id="week-next" class="icon-btn">▶</button>
+        <h2 id="week-label"></h2>
+        <div class="week-total">Total da semana <strong id="week-total">0:00</strong></div>
+        <button id="btn-refresh" class="icon-btn" title="Atualizar">⟳</button>
+      </div>
+      <div id="week-bars" class="week-bars glass"></div>
+      <div id="week-list" class="week-list"></div>
+    </section>
+
+    <section id="view-calendar" class="view hidden">
+      <div class="week-nav">
+        <button id="cal-prev" class="icon-btn">◀</button>
+        <button id="cal-today" class="ghost-btn">Hoje</button>
+        <button id="cal-next" class="icon-btn">▶</button>
+        <h2 id="cal-label"></h2>
+        <div class="week-total">Total <strong id="cal-total">0:00</strong></div>
+      </div>
+      <div class="cal-layout">
+        <aside class="mini-cal glass" id="mini-cal"></aside>
+        <div class="cal-grid glass" id="cal-grid"></div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Dropdown de busca de cards -->
+  <div id="issue-dropdown" class="dropdown glass hidden">
+    <input id="issue-search" placeholder="Buscar por chave (ABC-123) ou texto…" autocomplete="off" />
+    <div id="issue-results" class="issue-results"></div>
+  </div>
+
+  <!-- Modal entrada -->
+  <dialog id="entry-modal" class="modal">
+    <form id="entry-form" method="dialog" class="glass">
+      <h3 id="entry-title">Nova entrada</h3>
+      <label>Card
+        <div class="issue-picker"><button type="button" id="entry-issue-btn" class="issue-btn">＋ Selecionar card</button></div>
+      </label>
+      <label>Descrição<input id="entry-desc" /></label>
+      <div class="row">
+        <label>Data<input id="entry-date" type="date" required /></label>
+        <label>Início<input id="entry-start" type="time" required /></label>
+        <label>Fim<input id="entry-end" type="time" /></label>
+        <label>Duração<input id="entry-dur" placeholder="1h 30m" /></label>
+      </div>
+      <p class="form-error" id="entry-error"></p>
+      <div class="modal-actions">
+        <button type="button" id="entry-delete" class="danger-btn hidden">Excluir</button>
+        <span class="spacer"></span>
+        <button type="button" id="entry-cancel" class="ghost-btn">Cancelar</button>
+        <button type="submit" id="entry-save" class="primary-btn">Salvar no Jira</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Modal configurações -->
+  <dialog id="settings-modal" class="modal">
+    <form id="settings-form" method="dialog" class="glass">
+      <h3>⚙ Configurações do Jira</h3>
+      <div id="settings-alert" class="alert hidden"></div>
+      <label>URL do Jira<input id="cfg-url" placeholder="https://suaempresa.atlassian.net" required /></label>
+      <label>E-mail da conta Atlassian<input id="cfg-email" type="email" placeholder="voce@empresa.com" required /></label>
+      <label>API Token
+        <div class="token-row">
+          <input id="cfg-token" type="password" placeholder="Cole o novo token (ATATT...)" autocomplete="off" />
+          <button type="button" id="cfg-toggle" class="icon-btn" title="Mostrar/ocultar">👁</button>
+        </div>
+        <small id="cfg-hint"></small>
+      </label>
+      <a href="https://id.atlassian.com/manage-profile/security/api-tokens" target="_blank" rel="noopener" class="link">🔑 Gerar novo token na Atlassian</a>
+      <div id="cfg-result" class="cfg-result"></div>
+      <div class="modal-actions">
+        <button type="button" id="cfg-test" class="ghost-btn">Testar conexão</button>
+        <span class="spacer"></span>
+        <button type="button" id="cfg-cancel" class="ghost-btn">Fechar</button>
+        <button type="submit" id="cfg-save" class="primary-btn">Salvar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div id="toasts" class="toasts"></div>
+  <script src="/app.js"></script>
+</body>
+</html>
