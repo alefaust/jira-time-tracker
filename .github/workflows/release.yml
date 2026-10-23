@@ -19,7 +19,6 @@ jobs:
           - os: windows-latest
           - os: ubuntu-latest
           - os: macos-latest # Apple Silicon (arm64)
-          - os: macos-13     # Intel (x64)
 
     steps:
       - uses: actions/checkout@v4
@@ -79,12 +78,11 @@ jobs:
             - Configuração em `~/.config/jira-time-tracker/config.json`.
 
             ### 🍎 macOS
-            - **Apple Silicon (M1/M2/M3/M4)**: **`JiraTimeTracker-macos-arm64`**
-            - **Intel**: **`JiraTimeTracker-macos-x64`**
+            - **`JiraTimeTracker-macos-arm64`** (Apple Silicon M1/M2/M3/M4)
             - No terminal:
               ```bash
-              chmod +x JiraTimeTracker-macos-*
-              xattr -cr JiraTimeTracker-macos-*
+              chmod +x JiraTimeTracker-macos-arm64
+              xattr -cr JiraTimeTracker-macos-arm64
               ./JiraTimeTracker-macos-arm64
               ```
             - Configuração em `~/Library/Application Support/JiraTimeTracker/config.json`.

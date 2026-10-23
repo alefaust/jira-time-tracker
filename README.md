@@ -12,12 +12,10 @@ Baixe o executável para o seu sistema em [Releases](https://github.com/alefaust
   chmod +x JiraTimeTracker-linux-x64
   ./JiraTimeTracker-linux-x64
   ```
-- **🍎 macOS**:
-  - Apple Silicon (M1/M2/M3/M4): `JiraTimeTracker-macos-arm64`
-  - Intel: `JiraTimeTracker-macos-x64`
+- **🍎 macOS**: Baixe `JiraTimeTracker-macos-arm64` (Apple Silicon M1/M2/M3/M4):
   ```bash
-  chmod +x JiraTimeTracker-macos-*
-  xattr -cr JiraTimeTracker-macos-*  # se o macOS avisar sobre desenvolvedor não verificado
+  chmod +x JiraTimeTracker-macos-arm64
+  xattr -cr JiraTimeTracker-macos-arm64  # se o macOS avisar sobre desenvolvedor não verificado
   ./JiraTimeTracker-macos-arm64
   ```
 
