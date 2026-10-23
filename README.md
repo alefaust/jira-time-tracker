@@ -2,12 +2,31 @@
 
 Registro de horas em cards do Jira Cloud — timer, lista semanal e calendário.
 
-## Download (Windows)
-Baixe **JiraTimeTracker.exe** em [Releases](https://github.com/alefaust/jira-time-tracker/releases/latest) e dê duplo clique.
-O app abre em uma janela própria (Edge/Chrome em modo aplicativo). Mantenha a janela do console minimizada; fechá-la encerra o app.
-A configuração fica em `%APPDATA%\JiraTimeTracker\config.json`.
+## Download (Windows, Linux, macOS)
+Baixe o executável para o seu sistema em [Releases](https://github.com/alefaust/jira-time-tracker/releases/latest):
 
-> O Windows SmartScreen pode avisar por ser um executável não assinado: clique em **Mais informações → Executar assim mesmo**.
+- **🪟 Windows**: Baixe `JiraTimeTracker.exe` e dê duplo clique.
+  > O Windows SmartScreen pode avisar por ser um executável não assinado: clique em **Mais informações → Executar assim mesmo**.
+- **🐧 Linux**: Baixe `JiraTimeTracker-linux-x64`:
+  ```bash
+  chmod +x JiraTimeTracker-linux-x64
+  ./JiraTimeTracker-linux-x64
+  ```
+- **🍎 macOS**:
+  - Apple Silicon (M1/M2/M3/M4): `JiraTimeTracker-macos-arm64`
+  - Intel: `JiraTimeTracker-macos-x64`
+  ```bash
+  chmod +x JiraTimeTracker-macos-*
+  xattr -cr JiraTimeTracker-macos-*  # se o macOS avisar sobre desenvolvedor não verificado
+  ./JiraTimeTracker-macos-arm64
+  ```
+
+O app abre automaticamente em uma janela própria de aplicativo (Edge/Chrome em modo `--app`). Mantenha a janela do console minimizada; fechá-la encerra o app.
+
+A configuração (URL, e-mail e token) é salva automaticamente no caminho do seu sistema:
+- **Windows**: `%APPDATA%\JiraTimeTracker\config.json`
+- **macOS**: `~/Library/Application Support/JiraTimeTracker/config.json`
+- **Linux**: `~/.config/jira-time-tracker/config.json`
 
 ## Rodar pelo código
 - Node.js 18+ (https://nodejs.org) — sem dependências, não precisa de `npm install`.
@@ -15,9 +34,9 @@ A configuração fica em `%APPDATA%\JiraTimeTracker\config.json`.
 2. Abra http://localhost:5178
 3. No primeiro acesso, preencha **URL do Jira**, **e-mail** e **API token** e clique em Salvar.
 
-## Gerar o .exe
-`npm run build` → `dist/JiraTimeTracker.exe`.
-Para publicar uma nova versão: `git tag v1.x.x && git push --tags` (o GitHub Actions gera e anexa o .exe na Release).
+## Compilar localmente
+`npm run build` → gera o binário do seu sistema operacional na pasta `dist/`.
+Para publicar uma nova versão com binários para todas as plataformas: `git tag v1.x.x && git push --tags` (o GitHub Actions compila em runners Windows, Linux e macOS e anexa todos na Release).
 
 ## Token expirado
 Quando o Jira recusar o token, o app abre ⚙ Configurações automaticamente.

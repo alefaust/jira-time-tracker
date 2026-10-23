@@ -1,6 +1,6 @@
 {
   "name": "jira-time-tracker",
-  "version": "1.0.2",
+  "version": "1.1.0",
   "private": true,
   "description": "Registro de horas em cards do Jira (estilo Clockify)",
   "main": "server.js",

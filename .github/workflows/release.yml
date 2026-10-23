@@ -1,4 +1,4 @@
-name: Build Windows exe
+name: Build & Release
 
 on:
   push:
@@ -10,22 +10,82 @@ permissions:
 
 jobs:
   build:
-    runs-on: windows-latest
+    name: Build (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+          - os: ubuntu-latest
+          - os: macos-latest # Apple Silicon (arm64)
+          - os: macos-13     # Intel (x64)
+
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - run: node build.js
-      - uses: actions/upload-artifact@v4
+
+      - name: Build SEA Binary
+        run: node build.js
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
         with:
-          name: JiraTimeTracker
-          path: dist/JiraTimeTracker.exe
+          name: binaries-${{ matrix.os }}
+          path: |
+            dist/JiraTimeTracker*
+            !dist/*.blob
+            !dist/*.json
+
+  release:
+    name: Publicar Release
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: binaries-*
+          path: dist
+          merge-multiple: true
+
+      - name: List files
+        run: ls -la dist
+
       - name: Publicar Release
-        if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
-          files: dist/JiraTimeTracker.exe
+          files: dist/*
           body: |
-            Baixe **JiraTimeTracker.exe** e execute com duplo clique.
-            A configuração (URL, e-mail, token) é salva em `%APPDATA%\JiraTimeTracker\config.json`.
+            ## ⏱ Jira Time Tracker
+
+            Baixe o binário para o seu sistema operacional:
+
+            ### 🪟 Windows
+            - **JiraTimeTracker.exe** (ou `JiraTimeTracker-win-x64.exe`)
+            - Dê duplo clique para executar. Mantenha a janela do console minimizada.
+            - Configuração em `%APPDATA%\JiraTimeTracker\config.json`.
+
+            ### 🐧 Linux
+            - **`JiraTimeTracker-linux-x64`**
+            - No terminal:
+              ```bash
+              chmod +x JiraTimeTracker-linux-x64
+              ./JiraTimeTracker-linux-x64
+              ```
+            - Configuração em `~/.config/jira-time-tracker/config.json`.
+
+            ### 🍎 macOS
+            - **Apple Silicon (M1/M2/M3/M4)**: **`JiraTimeTracker-macos-arm64`**
+            - **Intel**: **`JiraTimeTracker-macos-x64`**
+            - No terminal:
+              ```bash
+              chmod +x JiraTimeTracker-macos-*
+              xattr -cr JiraTimeTracker-macos-*
+              ./JiraTimeTracker-macos-arm64
+              ```
+            - Configuração em `~/Library/Application Support/JiraTimeTracker/config.json`.
+

@@ -10,8 +10,13 @@ let sea = null;
 try { sea = require('node:sea'); if (!sea.isSea()) sea = null; } catch { sea = null; }
 
 const PORT = process.env.PORT || 5178;
-// No .exe a configuração fica em %APPDATA%\JiraTimeTracker; em dev, na pasta do projeto
-const CONFIG_DIR = sea ? path.join(process.env.APPDATA || os.homedir(), 'JiraTimeTracker') : __dirname;
+function getConfigDir() {
+  if (!sea) return __dirname;
+  if (process.platform === 'win32') return path.join(process.env.APPDATA || os.homedir(), 'JiraTimeTracker');
+  if (process.platform === 'darwin') return path.join(os.homedir(), 'Library', 'Application Support', 'JiraTimeTracker');
+  return path.join(process.env.XDG_CONFIG_HOME || path.join(os.homedir(), '.config'), 'jira-time-tracker');
+}
+const CONFIG_DIR = getConfigDir();
 fs.mkdirSync(CONFIG_DIR, { recursive: true });
 const CONFIG_FILE = path.join(CONFIG_DIR, 'config.json');
 const PUBLIC_DIR = path.join(__dirname, 'public');
@@ -26,7 +31,22 @@ function readStatic(name) {
 // Abre como janela de aplicativo (Edge/Chrome em modo --app); se não houver, usa o navegador padrão
 function openAppWindow() {
   const url = `http://localhost:${PORT}`;
-  if (process.platform !== 'win32') return exec(`xdg-open ${url} || open ${url}`);
+  if (process.platform === 'darwin') {
+    const candidates = [
+      '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+      '/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge',
+      '/Applications/Brave Browser.app/Contents/MacOS/Brave Browser',
+    ];
+    const browser = candidates.find((p) => fs.existsSync(p));
+    if (browser) return exec(`"${browser}" --app=${url} --window-size=1280,860`);
+    return exec(`open "${url}"`);
+  }
+  if (process.platform === 'linux') {
+    const browsers = ['google-chrome', 'google-chrome-stable', 'chromium-browser', 'chromium', 'microsoft-edge'];
+    const checkAndRun = browsers.map((b) => `command -v ${b} >/dev/null 2>&1 && exec ${b} --app=${url} --window-size=1280,860`).join(' || ');
+    return exec(`${checkAndRun} || xdg-open "${url}"`);
+  }
+  // Windows
   const pf = process.env['ProgramFiles(x86)'] || 'C:\\Program Files (x86)';
   const pf64 = process.env.ProgramFiles || 'C:\\Program Files';
   const local = process.env.LOCALAPPDATA || '';
